@@ -1,0 +1,22 @@
+{% extends "header.html" %}
+
+{% block title %}IMDB Web Scraping{% endblock %}
+
+{% block content %}
+	<h1>Actors and Actresses that Played in Both {{title0}} and {{title1}}</h1>
+	<ul>	
+		{% for item in cast %}
+			<li><b>{{item.actor}}</b> who played <i>{{item.character0}}</i> in {{title0}} and <i>{{item.character1}}</i> in {{title1}}</li>
+		{% empty %}
+			<p>No actors or actresses played in both {{title0}} and {{title1}}.</p>
+		{% endfor %}
+	</ul>
+	<hr />
+	<ul>	
+		{% for movie in recommended %}
+			<li>{{movie}}</li>
+		{% empty %}
+			<p>No recommended TV shows or movies for {{title0}} and {{title1}}.</p>
+		{% endfor %}
+	</ul>
+{% endblock %}

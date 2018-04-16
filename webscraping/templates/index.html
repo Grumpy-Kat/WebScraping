@@ -1,0 +1,13 @@
+{% extends "header.html" %}
+
+{% block title %}IMDB Web Scraping Form{% endblock %}
+
+{% block content %}
+	<form method="GET" action="webscraping/">{% csrf_token %}
+		{{form.title0.label_tag}}<br />
+		{{form.title0}}<br /><br />
+		{{form.title1.label_tag}}<br />
+		{{form.title1}}<br /><br />
+		<button type="submit" class="button" name="submit" value="submit">Find Matches</button>
+	</form>
+{% endblock %}
