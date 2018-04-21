@@ -5,5 +5,5 @@ Allows you to enter two movies or TV shows and returns all actors that played in
 
 List of Future Additions:
 -Optimize!!!
--Allow you to select the specific TV show or movie based on input to make sure it is correct (currently just gets first result from IMDB and is not always corect)
+-Add CSS
 -MAYBE make into Kivy app, instead of Django

@@ -1,20 +1,59 @@
 from django.shortcuts import render
 from django.http import HttpResponse
-from forms import TitleForm
 from collections import Counter
 from operator import itemgetter
 import urllib2
 import re
 
 def index(request):
-	form = TitleForm()
-	return render(request, 'index.html', {'form': form})
+	title0 = request.GET['title0']
+	selection0 = request.GET['selection0']
+	title1 = request.GET['title1']
+	selection1 = request.GET['selection1']
+	patternList = re.compile('<h3 class="findSectionHeader"><a name="tt"><\/a>Titles<\/h3>\s*<table class="findList">\s*(.*)<\/table>')
+	patternTitles = re.compile('<tr class="findResult (?:odd|even)?"> <td class="primary_photo"> <a href="\/title\/.*\/\?ref_=fn_al_tt_.*" ><img src=".*" \/><\/a> <\/td> <td class="result_text"> <a href="\/title\/.*\/\?ref_=fn_al_tt_.*" >(.*<\/a> \(.*\)(?: \(.*\))?) (?:.*)?<\/td>')
+	url = ""
+	response = None
+	source = None
+	optionList = []
+	titleOptions0 = []
+	if title0 != "":
+		url = "http://www.imdb.com/find?ref_=nv_sr_fn&q=" + title0.replace(' ','+').split('(')[0] + "&s=all"
+		response = urllib2.urlopen(url)
+		source = response.read()
+		optionList = patternList.findall(source)[0].split("</tr>")
+		optionList = optionList[:-1]
+		for option in optionList:
+			addOption = patternTitles.findall(option)[0].replace('</a>','')
+			if addOption != selection0:
+				titleOptions0.append({'title' : addOption, 'checked' : ''})
+			#titleOptions0.append(option)
+	if selection0 != '':
+		titleOptions0.append({'title' : selection0, 'checked' : 'checked'})
+	titleOptions1 = []
+	if title1 != "":
+		url = "http://www.imdb.com/find?ref_=nv_sr_fn&q=" + title1.replace(' ','+').split('(')[0] + "&s=all"
+		response = urllib2.urlopen(url)
+		source = response.read()
+		optionList = patternList.findall(source)[0].split("</tr>")
+		optionList = optionList[:-1]
+		for option in optionList:
+			addOption = patternTitles.findall(option)[0].replace('</a>','')
+			if addOption != selection1:
+				titleOptions1.append({'title' : addOption, 'checked' : ''})
+			#titleOptions1.append(option)
+	if selection1 != '':
+		titleOptions1.append({'title' : selection1, 'checked' : 'checked'})
+	arguments = {'title0Val' : title0, 'title1Val' : title1, 'selection0Val' : selection0, 'selection1Val' : selection1, 'titleOptions0' : titleOptions0, 'titleOptions1' : titleOptions1}
+	return render(request, 'index.html', arguments)
 
 def webscraping(request):
 	#get titles
-	title0 = request.GET['title0']
-	title1 = request.GET['title1']
-	searchTerm = title0.replace(' ','+')
+	title0 = request.GET['selection0']
+	title1 = request.GET['selection1']
+	if title0 == '' or title1 == '':
+		return index(request=request)
+	searchTerm = title0.replace(' ','+').split('(')[0] + title0.replace(' ','+').split('(')[1]
 	#get code (like tt1234567) to use in other urls and type (like movie or TV show)
 	patternCode = re.compile('<td class="result_text">\s*<a href="\/title\/(.*)\/\?ref.=.........."\s*>.*<\/a>')
 	patternType = re.compile('\(....\) \((.*)\)')
@@ -30,7 +69,7 @@ def webscraping(request):
 	source = response.read()
 	matchesGenres0 = patternGenre.findall(source)
 	url0 = "http://www.imdb.com/title/" + code0 +"/fullcredits?ref_=tt_cl_sm#cast"
-	searchTerm = title1.replace(' ','+')
+	searchTerm = title1.replace(' ','+').split('(')[0] + title1.replace(' ','+').split('(')[1]
 	url1 = "http://www.imdb.com/find?ref_=nv_sr_fn&q=" + searchTerm + "&s=all"
 	response = urllib2.urlopen(url1)
 	source = response.read()
@@ -111,26 +150,27 @@ def webscraping(request):
 				matchesRatings[i] += ".0"
 		else:
 			matchesRatings[i] = "0.0"
-	#matchesRecommended = dict(zip(matchesRecommended, matchesRatings))
 	counter = Counter(matchesRecommended).items()
 	recommended = [[], []]
 	for i in range(0, len(counter)):
-		if title0 != counter[i][0] and title1 != counter[i][0] and counter[i][1] > 2:
-			recommended[0].append(matchesRecommended[i])
-			recommended[1].append(matchesRatings[i])
+		if title0.split('(')[0][:-1] != counter[i][0] and title1.split('(')[0][:-1] != counter[i][0] and counter[i][1] > 2:
+				recommended[0].append(matchesRecommended[matchesRecommended.index(counter[i][0])])
+				recommended[1].append(matchesRatings[matchesRecommended.index(counter[i][0])])
 	if len(recommended[0]) <= 10:
 		recommended = [[], []]
 		for i in range(0, len(counter)):
-			if title0 != counter[i][0] and title1 != counter[i][0] and counter[i][1] > 1:
-				recommended[0].append(matchesRecommended[i])
-				recommended[1].append(matchesRatings[i])
+			if title0.split('(')[0][:-1] != counter[i][0] and title1.split('(')[0][:-1] != counter[i][0] and counter[i][1] > 1:
+				recommended[0].append(matchesRecommended[matchesRecommended.index(counter[i][0])])
+				recommended[1].append(matchesRatings[matchesRecommended.index(counter[i][0])])
 	if len(recommended[0]) <= 5:
-		recommended[0] = matchesRecommended
-		recommended[1] = matchesRatings
+		recommended = [[], []]
+		for i in range(0, len(counter)):
+			if title0.split('(')[0][:-1] != counter[i][0] and title1.split('(')[0][:-1] != counter[i][0]:
+				recommended[0].append(matchesRecommended[matchesRecommended.index(counter[i][0])])
+				recommended[1].append(matchesRatings[matchesRecommended.index(counter[i][0])])
 	recommended = zip(*recommended)
 	recommended.sort(reverse = True, key = lambda x: x[1])
 	recommended = zip(*recommended)
-	#output = [value for value, count in Counter(matchesRecommended).items() if count > 2]
 	#make argument list and create page with it
-	arguments = {'title0' : title0, 'title1' : title1, 'cast' : cast, 'recommended' : recommended[0][:20]}
+	arguments = {'title0' : title0.split('(')[0], 'title1' : title1.split('(')[0], 'cast' : cast, 'recommended' : recommended[0][:20]}
 	return render(request, 'webscraping.html', arguments)

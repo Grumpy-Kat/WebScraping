@@ -1,13 +1,39 @@
 {% extends "header.html" %}
 
+{% block style %}{% endblock %}
+
 {% block title %}IMDB Web Scraping Form{% endblock %}
 
 {% block content %}
-	<form method="GET" action="webscraping/">{% csrf_token %}
-		{{form.title0.label_tag}}<br />
-		{{form.title0}}<br /><br />
-		{{form.title1.label_tag}}<br />
-		{{form.title1}}<br /><br />
+	<script>
+		function SetSelection(i, value, checkbox){
+			if(checkbox.checked == true){
+				document.getElementById('selection' + i).value = value;
+				document.getElementById('title' + i).value = value;
+			} else {
+				document.getElementById('selection' + i).value = '';
+			}
+		}
+	</script>
+	<form method="GET" action="/webscraping">{% csrf_token %}
+		<label for="title0">First TV Show or Movie</label><br />
+		<input type="text" value="{{title0Val}}" id="title0" name="title0" oninput="window.location.href='../index?title0=' + document.getElementById('title0').value + '&selection0=' + document.getElementById('selection0').value + '&title1=' + document.getElementById('title1').value + '&selection1=' + document.getElementById('selection1').value;" /><br />
+		<ul>	
+			{% for title in titleOptions0 %}
+				<li><input type="checkbox" {{title.checked}} onclick="SetSelection(0, '{{title.title}}', this)" />
+				<span id="{{title.title}}">{{title.title}}</span></li>
+			{% endfor %}
+		</ul>
+		<input type="hidden" id="selection0" name="selection0" value="{{selection0Val}}" />
+		<label for="title1">Second TV Show or Movie</label><br />
+		<input type="text" value="{{title1Val}}" id="title1" name="title1" oninput="window.location.href='../index?title0=' + document.getElementById('title0').value + '&selection0=' + document.getElementById('selection0').value + '&title1=' + document.getElementById('title1').value + '&selection1=' + document.getElementById('selection1').value;" /><br />
+		<ul>	
+			{% for title in titleOptions1 %}
+				<li><input type="checkbox" {{title.checked}} onclick="SetSelection(1, '{{title.title}}', this)" />
+				<span id="{{title.title}}">{{title.title}}</span></li>
+			{% endfor %}
+		</ul>
+		<input type="hidden" id="selection1" name="selection1" value="{{selection1Val}}" />
 		<button type="submit" class="button" name="submit" value="submit">Find Matches</button>
 	</form>
 {% endblock %}
