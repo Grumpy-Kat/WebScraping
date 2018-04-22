@@ -2,8 +2,9 @@ from django.shortcuts import render
 from django.http import HttpResponse
 from collections import Counter
 from operator import itemgetter
-import urllib2
+import time
 import re
+import requests
 
 def index(request):
 	title0 = request.GET['title0']
@@ -19,29 +20,27 @@ def index(request):
 	titleOptions0 = []
 	if title0 != "":
 		url = "http://www.imdb.com/find?ref_=nv_sr_fn&q=" + title0.replace(' ','+').split('(')[0] + "&s=all"
-		response = urllib2.urlopen(url)
-		source = response.read()
+		response = requests.get(url, headers = {'Accept-Encoding' : 'identity'})
+		source = response.text
 		optionList = patternList.findall(source)[0].split("</tr>")
 		optionList = optionList[:-1]
 		for option in optionList:
 			addOption = patternTitles.findall(option)[0].replace('</a>','')
 			if addOption != selection0:
 				titleOptions0.append({'title' : addOption, 'checked' : ''})
-			#titleOptions0.append(option)
 	if selection0 != '':
 		titleOptions0.append({'title' : selection0, 'checked' : 'checked'})
 	titleOptions1 = []
 	if title1 != "":
 		url = "http://www.imdb.com/find?ref_=nv_sr_fn&q=" + title1.replace(' ','+').split('(')[0] + "&s=all"
-		response = urllib2.urlopen(url)
-		source = response.read()
+		response = requests.get(url, headers = {'Accept-Encoding' : 'identity'})
+		source = response.text
 		optionList = patternList.findall(source)[0].split("</tr>")
 		optionList = optionList[:-1]
 		for option in optionList:
 			addOption = patternTitles.findall(option)[0].replace('</a>','')
 			if addOption != selection1:
 				titleOptions1.append({'title' : addOption, 'checked' : ''})
-			#titleOptions1.append(option)
 	if selection1 != '':
 		titleOptions1.append({'title' : selection1, 'checked' : 'checked'})
 	arguments = {'title0Val' : title0, 'title1Val' : title1, 'selection0Val' : selection0, 'selection1Val' : selection1, 'titleOptions0' : titleOptions0, 'titleOptions1' : titleOptions1}
@@ -59,37 +58,37 @@ def webscraping(request):
 	patternType = re.compile('\(....\) \((.*)\)')
 	patternGenre = re.compile('<a href="\/genre\/.*\?ref_=.*"\s*><span class="itemprop" itemprop="genre">(.*)<\/span><\/a>');
 	url0 = "http://www.imdb.com/find?ref_=nv_sr_fn&q=" + searchTerm + "&s=all"
-	response = urllib2.urlopen(url0)
-	source = response.read()
+	response = requests.get(url0, headers = {'Accept-Encoding' : 'identity'})
+	source = response.text
 	code0 = patternCode.findall(source)[0].split("/")[0]
 	type0 = ''.join(x.capitalize() or '_' for x in patternType.findall(source)[0].split(")")[0].replace(' ','_').split('_'))
 	type0 = type0[0].lower() + type0[1:]
 	url0 = "http://www.imdb.com/title/" + code0 + "/?ref_=nv_sr_1"
-	response = urllib2.urlopen(url0)
-	source = response.read()
+	response = requests.get(url0, headers = {'Accept-Encoding' : 'identity'})
+	source = response.text
 	matchesGenres0 = patternGenre.findall(source)
 	url0 = "http://www.imdb.com/title/" + code0 +"/fullcredits?ref_=tt_cl_sm#cast"
 	searchTerm = title1.replace(' ','+').split('(')[0] + title1.replace(' ','+').split('(')[1]
 	url1 = "http://www.imdb.com/find?ref_=nv_sr_fn&q=" + searchTerm + "&s=all"
-	response = urllib2.urlopen(url1)
-	source = response.read()
+	response = requests.get(url1, headers = {'Accept-Encoding' : 'identity'})
+	source = response.text
 	code1 = patternCode.findall(source)[0].split("/")[0]
 	type1 = ''.join(x.capitalize() or '_' for x in patternType.findall(source)[0].split(")")[0].replace(' ','_').split('_'))
 	type1 = type1[0].lower() + type1[1:]
 	url1 = "http://www.imdb.com/title/" + code1 + "/?ref_=nv_sr_1"
-	response = urllib2.urlopen(url1)
-	source = response.read()
+	response = requests.get(url1, headers = {'Accept-Encoding' : 'identity'})
+	source = response.text
 	matchesGenres1 = patternGenre.findall(source)
 	url1 = "http://www.imdb.com/title/" + code1 +"/fullcredits?ref_=tt_cl_sm#cast"
 	#get actors and characters
 	patternActor = re.compile('<tr class="(?:odd|even)?">\s*<td class="primary_photo">\s<a href="\/name\/.*\/\?ref.=.*"\s><img height="44" width="32" alt="(.*?)" title')
 	patternCharacter = re.compile('<td class=\"character\">\s*<div>\s*(?:&nbsp;)?(?:<a href=\".*\" >)?(.*)(?:<\/a>)?')
-	response = urllib2.urlopen(url0)
-	source = response.read()
+	response = requests.get(url0, headers = {'Accept-Encoding' : 'identity'})
+	source = response.text
 	matchesActors0 = patternActor.findall(source)
 	matchesCharacters0 = patternCharacter.findall(source)
-	response = urllib2.urlopen(url1)
-	source = response.read()
+	response = requests.get(url1, headers = {'Accept-Encoding' : 'identity'})
+	source = response.text
 	matchesActors1 = patternActor.findall(source)
 	matchesCharacters1 = patternCharacter.findall(source)
 	#find actors that played in both and the characters they played
@@ -104,11 +103,11 @@ def webscraping(request):
 	url0 = "http://www.imdb.com/title/" + code0 +"/keywords?ref_=tt_stry_kw"
 	url1 = "http://www.imdb.com/title/" + code1 +"/keywords?ref_=tt_stry_kw"
 	patternKeywords = re.compile('<td class="soda sodavote" data-item-votes=".*" data-item-keyword="(.*)">')
-	response = urllib2.urlopen(url0)
-	source = response.read()
+	response = requests.get(url0, headers = {'Accept-Encoding' : 'identity'})
+	source = response.text
 	matchesKeywords0 = patternKeywords.findall(source)
-	response = urllib2.urlopen(url1)
-	source = response.read()
+	response = requests.get(url1, headers = {'Accept-Encoding' : 'identity'})
+	source = response.text
 	matchesKeywords1 = patternKeywords.findall(source)
 	keywords = []
 	for keyword0 in matchesKeywords0:
@@ -129,8 +128,8 @@ def webscraping(request):
 			url = "http://www.imdb.com/search/keyword?keywords=" + keyword + "&sort=moviemeter,asc&mode=detail&page=1&title_type=" + type0 + "&ref_=kw_ref_typ"
 		else:
 			url = "http://www.imdb.com/search/keyword?keywords=" + keyword + "&sort=moviemeter,asc&mode=detail&page=1&ref_=kw_ref_typ"
-		response = urllib2.urlopen(url)
-		source = response.read()
+		response = requests.get(url, headers = {'Accept-Encoding' : 'identity'})
+		source = response.text
 		matchesRecommended += patternRecommended.findall(source)
 		matchesRatings += patternRatings.findall(source)
 	for genre in genres:
@@ -138,8 +137,8 @@ def webscraping(request):
 			url = "http://www.imdb.com/search/keyword?sort=moviemeter,asc&mode=detail&page=1&title_type=" + type0 + "&genres=" + genre + "&ref_=kw_ref_typ"
 		else:
 			url = "http://www.imdb.com/search/keyword?sort=moviemeter,asc&mode=detail&page=1&genres=" + genre + "&ref_=kw_ref_gnr"
-		response = urllib2.urlopen(url)
-		source = response.read()
+		response = requests.get(url, headers = {'Accept-Encoding' : 'identity'})
+		source = response.text
 		matchesRecommended += patternRecommended.findall(source)
 		matchesRatings += patternRatings.findall(source)
 	for i in range(0, len(matchesRatings)):
