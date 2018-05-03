@@ -5,12 +5,30 @@ from operator import itemgetter
 import time
 import re
 import requests
+from celery.decorators import task
 
-def index(request):
-	title0 = request.GET['title0']
-	selection0 = request.GET['selection0']
-	title1 = request.GET['title1']
-	selection1 = request.GET['selection1']
+currTask = None
+
+def index(request=None, arguments={}):
+	result = None
+	global currTask
+	if not arguments:
+		title0 = request.GET['title0']
+		selection0 = request.GET['selection0']
+		title1 = request.GET['title1']
+		selection1 = request.GET['selection1']
+		if currTask != None:
+			currTask.revoke()
+			currTask = None
+		currTask = getOptionList.delay(title0, title1, selection0, selection1)
+		arguments = {'title0Val' : title0, 'title1Val' : title1, 'selection0Val' : selection0, 'selection1Val' : selection1, 'titleOptions0' : [], 'titleOptions1' : []}
+	response = render(request, 'index.html', arguments)
+	result_output = currTask.wait(timeout=None, interval=0.5)
+	response = render(request, 'index.html', result_output)
+	return response
+
+@task(name="getOptionList")
+def getOptionList(title0='', title1='', selection0='', selection1=''):
 	patternList = re.compile('<h3 class="findSectionHeader"><a name="tt"><\/a>Titles<\/h3>\s*<table class="findList">\s*(.*)<\/table>')
 	patternTitles = re.compile('<tr class="findResult (?:odd|even)?"> <td class="primary_photo"> <a href="\/title\/.*\/\?ref_=fn_al_tt_.*" ><img src=".*" \/><\/a> <\/td> <td class="result_text"> <a href="\/title\/.*\/\?ref_=fn_al_tt_.*" >(.*<\/a> \(.*\)(?: \(.*\))?) (?:.*)?<\/td>')
 	url = ""
@@ -44,19 +62,78 @@ def index(request):
 	if selection1 != '':
 		titleOptions1.append({'title' : selection1, 'checked' : 'checked'})
 	arguments = {'title0Val' : title0, 'title1Val' : title1, 'selection0Val' : selection0, 'selection1Val' : selection1, 'titleOptions0' : titleOptions0, 'titleOptions1' : titleOptions1}
-	return render(request, 'index.html', arguments)
+	return arguments
 
-def webscraping(request):
-	#get titles
+def webscraping(request=None, recommended=[]):
 	title0 = request.GET['selection0']
 	title1 = request.GET['selection1']
 	if title0 == '' or title1 == '':
 		return index(request=request)
-	searchTerm = title0.replace(' ','+').split('(')[0] + title0.replace(' ','+').split('(')[1]
-	#get code (like tt1234567) to use in other urls and type (like movie or TV show)
+	#get titles
+	result = None
+	global currTask
+	arguments = {}
+	cast = []
+	if not recommended:
+		searchTerm = title0.replace(' ','+').split('(')[0] + title0.replace(' ','+').split('(')[1]
+		#get code (like tt1234567) to use in other urls and type (like movie or TV show)
+		patternCode = re.compile('<td class="result_text">\s*<a href="\/title\/(.*)\/\?ref.=.........."\s*>.*<\/a>')
+		url0 = "http://www.imdb.com/find?ref_=nv_sr_fn&q=" + searchTerm + "&s=all"
+		response = requests.get(url0, headers = {'Accept-Encoding' : 'identity'})
+		source = response.text
+		code0 = patternCode.findall(source)[0].split("/")[0]
+		url0 = "http://www.imdb.com/title/" + code0 + "/?ref_=nv_sr_1"
+		response = requests.get(url0, headers = {'Accept-Encoding' : 'identity'})
+		source = response.text
+		url0 = "http://www.imdb.com/title/" + code0 +"/fullcredits?ref_=tt_cl_sm#cast"
+		searchTerm = title1.replace(' ','+').split('(')[0] + title1.replace(' ','+').split('(')[1]
+		url1 = "http://www.imdb.com/find?ref_=nv_sr_fn&q=" + searchTerm + "&s=all"
+		response = requests.get(url1, headers = {'Accept-Encoding' : 'identity'})
+		source = response.text
+		code1 = patternCode.findall(source)[0].split("/")[0]
+		url1 = "http://www.imdb.com/title/" + code1 + "/?ref_=nv_sr_1"
+		response = requests.get(url1, headers = {'Accept-Encoding' : 'identity'})
+		source = response.text
+		url1 = "http://www.imdb.com/title/" + code1 +"/fullcredits?ref_=tt_cl_sm#cast"
+		#get actors and characters
+		patternActor = re.compile('<tr class="(?:odd|even)?">\s*<td class="primary_photo">\s<a href="\/name\/.*\/\?ref.=.*"\s><img height="44" width="32" alt="(.*?)" title')
+		patternCharacter = re.compile('<td class=\"character\">\s*(?:&nbsp;)?(?:<a href=\".*\" >)?(.*)(?:<\/a>)?')
+		response = requests.get(url0, headers = {'Accept-Encoding' : 'identity'})
+		source = response.text
+		matchesActors0 = patternActor.findall(source)
+		matchesCharacters0 = patternCharacter.findall(source)
+		response = requests.get(url1, headers = {'Accept-Encoding' : 'identity'})
+		source = response.text
+		matchesActors1 = patternActor.findall(source)
+		matchesCharacters1 = patternCharacter.findall(source)
+		#find actors that played in both and the characters they played
+		cast = []
+		for i in range(0, len(matchesActors0)):
+			for j in range(0, len(matchesActors1)):
+				if matchesActors0[i] == matchesActors1[j]:
+					print(i)
+					matchesCharacters0[i] = matchesCharacters0[i].replace('</a>', '')
+					matchesCharacters1[j] = matchesCharacters1[j].replace('</a>', '')
+					cast.append({'actor' : matchesActors0[i], 'character0' : matchesCharacters0[i], 'character1' : matchesCharacters1[j]})
+		if currTask != None:
+			currTask.revoke()
+			currTask = None
+		currTask = getRecommendedList.delay(title0, title1)
+		#make argument list and create page with it
+		arguments = {'title0' : title0.split('(')[0], 'title1' : title1.split('(')[0], 'cast' : cast, 'recommended' : recommended}
+	response = render(request, 'webscraping.html', arguments)
+	result_output = currTask.wait(timeout=None, interval=0.5)
+	arguments = {'title0' : title0.split('(')[0], 'title1' : title1.split('(')[0], 'cast' : cast, 'recommended' : result_output[:20]}
+	response = render(request, 'webscraping.html', arguments)
+	return response
+	
+@task(name="getRecommendedList")
+def getRecommendedList(title0='', title1=''):
+	#get recommended
 	patternCode = re.compile('<td class="result_text">\s*<a href="\/title\/(.*)\/\?ref.=.........."\s*>.*<\/a>')
 	patternType = re.compile('\(....\) \((.*)\)')
 	patternGenre = re.compile('<a href="\/genre\/.*\?ref_=.*"\s*><span class="itemprop" itemprop="genre">(.*)<\/span><\/a>');
+	searchTerm = title0.replace(' ','+').split('(')[0] + title0.replace(' ','+').split('(')[1]
 	url0 = "http://www.imdb.com/find?ref_=nv_sr_fn&q=" + searchTerm + "&s=all"
 	response = requests.get(url0, headers = {'Accept-Encoding' : 'identity'})
 	source = response.text
@@ -80,26 +157,6 @@ def webscraping(request):
 	source = response.text
 	matchesGenres1 = patternGenre.findall(source)
 	url1 = "http://www.imdb.com/title/" + code1 +"/fullcredits?ref_=tt_cl_sm#cast"
-	#get actors and characters
-	patternActor = re.compile('<tr class="(?:odd|even)?">\s*<td class="primary_photo">\s<a href="\/name\/.*\/\?ref.=.*"\s><img height="44" width="32" alt="(.*?)" title')
-	patternCharacter = re.compile('<td class=\"character\">\s*<div>\s*(?:&nbsp;)?(?:<a href=\".*\" >)?(.*)(?:<\/a>)?')
-	response = requests.get(url0, headers = {'Accept-Encoding' : 'identity'})
-	source = response.text
-	matchesActors0 = patternActor.findall(source)
-	matchesCharacters0 = patternCharacter.findall(source)
-	response = requests.get(url1, headers = {'Accept-Encoding' : 'identity'})
-	source = response.text
-	matchesActors1 = patternActor.findall(source)
-	matchesCharacters1 = patternCharacter.findall(source)
-	#find actors that played in both and the characters they played
-	cast = []
-	for i in range(0, len(matchesActors0)):
-		for j in range(0, len(matchesActors1)):
-			if matchesActors0[i] == matchesActors1[j]:
-				matchesCharacters0[i] = matchesCharacters0[i].replace('</a>', '')
-				matchesCharacters1[j] = matchesCharacters1[j].replace('</a>', '')
-				cast.append({'actor' : matchesActors0[i], 'character0' : matchesCharacters0[i], 'character1' : matchesCharacters1[j]})
-	#get recommended
 	url0 = "http://www.imdb.com/title/" + code0 +"/keywords?ref_=tt_stry_kw"
 	url1 = "http://www.imdb.com/title/" + code1 +"/keywords?ref_=tt_stry_kw"
 	patternKeywords = re.compile('<td class="soda sodavote" data-item-votes=".*" data-item-keyword="(.*)">')
@@ -170,6 +227,4 @@ def webscraping(request):
 	recommended = zip(*recommended)
 	recommended.sort(reverse = True, key = lambda x: x[1])
 	recommended = zip(*recommended)
-	#make argument list and create page with it
-	arguments = {'title0' : title0.split('(')[0], 'title1' : title1.split('(')[0], 'cast' : cast, 'recommended' : recommended[0][:20]}
-	return render(request, 'webscraping.html', arguments)
+	return recommended[0]
