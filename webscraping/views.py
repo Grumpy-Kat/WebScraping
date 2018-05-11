@@ -12,66 +12,6 @@ import json
 prevTitle0 = ''
 prevTitle1 = ''
 
-# def getIndexTask(request, taskId):
-	# indexTask = IndexTask(taskId)
-	# return JsonResponse(indexTask.getInfo())
-
-# def index(request):
-	# global prevTitle0
-	# title0 = request.GET['title0']
-	# selection0 = request.GET['selection0']
-	# focus0 = 'false'
-	# if prevTitle0 != title0:
-		# focus0 = 'true'
-		# prevTitle0 = title0
-	# global prevTitle1
-	# title1 = request.GET['title1']
-	# selection1 = request.GET['selection1']
-	# focus1 = 'false'
-	# if prevTitle1 != title1:
-		# focus1 = 'true'
-		# prevTitle1 = title1
-	# taskId = getOptionList.delay(title0, title1, selection0, selection1).task_id
-	# arguments = {'taskId' : taskId, 'title0Val' : title0, 'title1Val' : title1, 'selection0Val' : selection0, 'selection1Val' : selection1, 'focus0' : focus0, 'focus1' : focus1}
-	# return render(request, 'index.html', context=arguments)
-
-# @task(name="getOptionList")
-# def getOptionList(title0='', title1='', selection0='', selection1=''):
-	# patternList = re.compile('<h3 class="findSectionHeader"><a name="tt"><\/a>Titles<\/h3>\s*<table class="findList">\s*(.*)<\/table>')
-	# patternTitles = re.compile('<tr class="findResult (?:odd|even)?"> <td class="primary_photo"> <a href="\/title\/.*\/\?ref_=fn_al_tt_.*" ><img src=".*" \/><\/a> <\/td> <td class="result_text"> <a href="\/title\/.*\/\?ref_=fn_al_tt_.*" >(.*<\/a> \(.*\)(?: \(.*\))?) (?:.*)?<\/td>')
-	# url = ""
-	# response = None
-	# source = None
-	# optionList = []
-	# titleOptions0 = []
-	# if title0 != "":
-		# url = "http://www.imdb.com/find?ref_=nv_sr_fn&q=" + title0.replace(' ','+').split('(')[0] + "&s=all"
-		# response = requests.get(url, headers = {'Accept-Encoding' : 'identity'})
-		# source = response.text
-		# optionList = patternList.findall(source)[0].split("</tr>")
-		# optionList = optionList[:-1]
-		# for option in optionList:
-			# addOption = patternTitles.findall(option)[0].replace('</a>','')
-			# if addOption != selection0:
-				# titleOptions0.append({'title' : addOption, 'checked' : 'false'})
-	# if selection0 != '':
-		# titleOptions0.append({'title' : selection0, 'checked' : 'true'})
-	# titleOptions1 = []
-	# if title1 != "":
-		# url = "http://www.imdb.com/find?ref_=nv_sr_fn&q=" + title1.replace(' ','+').split('(')[0] + "&s=all"
-		# response = requests.get(url, headers = {'Accept-Encoding' : 'identity'})
-		# source = response.text
-		# optionList = patternList.findall(source)[0].split("</tr>")
-		# optionList = optionList[:-1]
-		# for option in optionList:
-			# addOption = patternTitles.findall(option)[0].replace('</a>','')
-			# if addOption != selection1:
-				# titleOptions1.append({'title' : addOption, 'checked' : 'false'})
-	# if selection1 != '':
-		# titleOptions1.append({'title' : selection1, 'checked' : 'true'})
-	# arguments = {'titleOptions0' : titleOptions0, 'titleOptions1' : titleOptions1}
-	# return arguments
-	
 currTask = None
 
 def index(request=None, arguments={}):

@@ -20,7 +20,7 @@
 		<input type="text" value="{{title0Val}}" id="title0" name="title0" oninput="window.location.href='../index?title0=' + document.getElementById('title0').value + '&selection0=' + document.getElementById('selection0').value + '&title1=' + document.getElementById('title1').value + '&selection1=' + document.getElementById('selection1').value;" /><br />
 		<ul>	
 			{% for title in titleOptions0 %}
-				<li><input type="checkbox" {{title.checked}} onclick="SetSelection(0, '{{title.title}}', this)" />
+				<li><input type="radio" name="titleSelection0" {{title.checked}} onclick="SetSelection(0, '{{title.title}}', this)" />
 				<span id="{{title.title}}">{{title.title}}</span></li>
 			{% endfor %}
 		</ul>
@@ -29,7 +29,7 @@
 		<input type="text" value="{{title1Val}}" id="title1" name="title1" oninput="window.location.href='../index?title0=' + document.getElementById('title0').value + '&selection0=' + document.getElementById('selection0').value + '&title1=' + document.getElementById('title1').value + '&selection1=' + document.getElementById('selection1').value;" /><br />
 		<ul>	
 			{% for title in titleOptions1 %}
-				<li><input type="checkbox" {{title.checked}} onclick="SetSelection(1, '{{title.title}}', this)" />
+				<li><input type="radio" name="titleSelection1" {{title.checked}} onclick="SetSelection(1, '{{title.title}}', this)" />
 				<span id="{{title.title}}">{{title.title}}</span></li>
 			{% endfor %}
 		</ul>
