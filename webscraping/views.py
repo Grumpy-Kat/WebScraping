@@ -1,12 +1,77 @@
 from django.shortcuts import render
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from collections import Counter
 from operator import itemgetter
 import time
 import re
 import requests
 from celery.decorators import task
+from celeryTask import Task
+import json
 
+prevTitle0 = ''
+prevTitle1 = ''
+
+# def getIndexTask(request, taskId):
+	# indexTask = IndexTask(taskId)
+	# return JsonResponse(indexTask.getInfo())
+
+# def index(request):
+	# global prevTitle0
+	# title0 = request.GET['title0']
+	# selection0 = request.GET['selection0']
+	# focus0 = 'false'
+	# if prevTitle0 != title0:
+		# focus0 = 'true'
+		# prevTitle0 = title0
+	# global prevTitle1
+	# title1 = request.GET['title1']
+	# selection1 = request.GET['selection1']
+	# focus1 = 'false'
+	# if prevTitle1 != title1:
+		# focus1 = 'true'
+		# prevTitle1 = title1
+	# taskId = getOptionList.delay(title0, title1, selection0, selection1).task_id
+	# arguments = {'taskId' : taskId, 'title0Val' : title0, 'title1Val' : title1, 'selection0Val' : selection0, 'selection1Val' : selection1, 'focus0' : focus0, 'focus1' : focus1}
+	# return render(request, 'index.html', context=arguments)
+
+# @task(name="getOptionList")
+# def getOptionList(title0='', title1='', selection0='', selection1=''):
+	# patternList = re.compile('<h3 class="findSectionHeader"><a name="tt"><\/a>Titles<\/h3>\s*<table class="findList">\s*(.*)<\/table>')
+	# patternTitles = re.compile('<tr class="findResult (?:odd|even)?"> <td class="primary_photo"> <a href="\/title\/.*\/\?ref_=fn_al_tt_.*" ><img src=".*" \/><\/a> <\/td> <td class="result_text"> <a href="\/title\/.*\/\?ref_=fn_al_tt_.*" >(.*<\/a> \(.*\)(?: \(.*\))?) (?:.*)?<\/td>')
+	# url = ""
+	# response = None
+	# source = None
+	# optionList = []
+	# titleOptions0 = []
+	# if title0 != "":
+		# url = "http://www.imdb.com/find?ref_=nv_sr_fn&q=" + title0.replace(' ','+').split('(')[0] + "&s=all"
+		# response = requests.get(url, headers = {'Accept-Encoding' : 'identity'})
+		# source = response.text
+		# optionList = patternList.findall(source)[0].split("</tr>")
+		# optionList = optionList[:-1]
+		# for option in optionList:
+			# addOption = patternTitles.findall(option)[0].replace('</a>','')
+			# if addOption != selection0:
+				# titleOptions0.append({'title' : addOption, 'checked' : 'false'})
+	# if selection0 != '':
+		# titleOptions0.append({'title' : selection0, 'checked' : 'true'})
+	# titleOptions1 = []
+	# if title1 != "":
+		# url = "http://www.imdb.com/find?ref_=nv_sr_fn&q=" + title1.replace(' ','+').split('(')[0] + "&s=all"
+		# response = requests.get(url, headers = {'Accept-Encoding' : 'identity'})
+		# source = response.text
+		# optionList = patternList.findall(source)[0].split("</tr>")
+		# optionList = optionList[:-1]
+		# for option in optionList:
+			# addOption = patternTitles.findall(option)[0].replace('</a>','')
+			# if addOption != selection1:
+				# titleOptions1.append({'title' : addOption, 'checked' : 'false'})
+	# if selection1 != '':
+		# titleOptions1.append({'title' : selection1, 'checked' : 'true'})
+	# arguments = {'titleOptions0' : titleOptions0, 'titleOptions1' : titleOptions1}
+	# return arguments
+	
 currTask = None
 
 def index(request=None, arguments={}):
@@ -63,69 +128,62 @@ def getOptionList(title0='', title1='', selection0='', selection1=''):
 		titleOptions1.append({'title' : selection1, 'checked' : 'checked'})
 	arguments = {'title0Val' : title0, 'title1Val' : title1, 'selection0Val' : selection0, 'selection1Val' : selection1, 'titleOptions0' : titleOptions0, 'titleOptions1' : titleOptions1}
 	return arguments
+	
+def getWebscrapingTask(request, taskId):
+	task = Task(taskId)
+	return JsonResponse(task.getInfo())
 
-def webscraping(request=None, recommended=[]):
+def webscraping(request):
 	title0 = request.GET['selection0']
 	title1 = request.GET['selection1']
 	if title0 == '' or title1 == '':
 		return index(request=request)
 	#get titles
 	result = None
-	global currTask
-	arguments = {}
 	cast = []
-	if not recommended:
-		searchTerm = title0.replace(' ','+').split('(')[0] + title0.replace(' ','+').split('(')[1]
-		#get code (like tt1234567) to use in other urls and type (like movie or TV show)
-		patternCode = re.compile('<td class="result_text">\s*<a href="\/title\/(.*)\/\?ref.=.........."\s*>.*<\/a>')
-		url0 = "http://www.imdb.com/find?ref_=nv_sr_fn&q=" + searchTerm + "&s=all"
-		response = requests.get(url0, headers = {'Accept-Encoding' : 'identity'})
-		source = response.text
-		code0 = patternCode.findall(source)[0].split("/")[0]
-		url0 = "http://www.imdb.com/title/" + code0 + "/?ref_=nv_sr_1"
-		response = requests.get(url0, headers = {'Accept-Encoding' : 'identity'})
-		source = response.text
-		url0 = "http://www.imdb.com/title/" + code0 +"/fullcredits?ref_=tt_cl_sm#cast"
-		searchTerm = title1.replace(' ','+').split('(')[0] + title1.replace(' ','+').split('(')[1]
-		url1 = "http://www.imdb.com/find?ref_=nv_sr_fn&q=" + searchTerm + "&s=all"
-		response = requests.get(url1, headers = {'Accept-Encoding' : 'identity'})
-		source = response.text
-		code1 = patternCode.findall(source)[0].split("/")[0]
-		url1 = "http://www.imdb.com/title/" + code1 + "/?ref_=nv_sr_1"
-		response = requests.get(url1, headers = {'Accept-Encoding' : 'identity'})
-		source = response.text
-		url1 = "http://www.imdb.com/title/" + code1 +"/fullcredits?ref_=tt_cl_sm#cast"
-		#get actors and characters
-		patternActor = re.compile('<tr class="(?:odd|even)?">\s*<td class="primary_photo">\s<a href="\/name\/.*\/\?ref.=.*"\s><img height="44" width="32" alt="(.*?)" title')
-		patternCharacter = re.compile('<td class=\"character\">\s*(?:&nbsp;)?(?:<a href=\".*\" >)?(.*)(?:<\/a>)?')
-		response = requests.get(url0, headers = {'Accept-Encoding' : 'identity'})
-		source = response.text
-		matchesActors0 = patternActor.findall(source)
-		matchesCharacters0 = patternCharacter.findall(source)
-		response = requests.get(url1, headers = {'Accept-Encoding' : 'identity'})
-		source = response.text
-		matchesActors1 = patternActor.findall(source)
-		matchesCharacters1 = patternCharacter.findall(source)
-		#find actors that played in both and the characters they played
-		cast = []
-		for i in range(0, len(matchesActors0)):
-			for j in range(0, len(matchesActors1)):
-				if matchesActors0[i] == matchesActors1[j]:
-					print(i)
-					matchesCharacters0[i] = matchesCharacters0[i].replace('</a>', '')
-					matchesCharacters1[j] = matchesCharacters1[j].replace('</a>', '')
-					cast.append({'actor' : matchesActors0[i], 'character0' : matchesCharacters0[i], 'character1' : matchesCharacters1[j]})
-		if currTask != None:
-			currTask.revoke()
-			currTask = None
-		currTask = getRecommendedList.delay(title0, title1)
-		#make argument list and create page with it
-		arguments = {'title0' : title0.split('(')[0], 'title1' : title1.split('(')[0], 'cast' : cast, 'recommended' : recommended}
-	response = render(request, 'webscraping.html', arguments)
-	result_output = currTask.wait(timeout=None, interval=0.5)
-	arguments = {'title0' : title0.split('(')[0], 'title1' : title1.split('(')[0], 'cast' : cast, 'recommended' : result_output[:20]}
-	response = render(request, 'webscraping.html', arguments)
-	return response
+	searchTerm = title0.replace(' ','+').split('(')[0] + title0.replace(' ','+').split('(')[1]
+	#get code (like tt1234567) to use in other urls and type (like movie or TV show)
+	patternCode = re.compile('<td class="result_text">\s*<a href="\/title\/(.*)\/\?ref.=.........."\s*>.*<\/a>')
+	url0 = "http://www.imdb.com/find?ref_=nv_sr_fn&q=" + searchTerm + "&s=all"
+	response = requests.get(url0, headers = {'Accept-Encoding' : 'identity'})
+	source = response.text
+	code0 = patternCode.findall(source)[0].split("/")[0]
+	url0 = "http://www.imdb.com/title/" + code0 + "/?ref_=nv_sr_1"
+	response = requests.get(url0, headers = {'Accept-Encoding' : 'identity'})
+	source = response.text
+	url0 = "http://www.imdb.com/title/" + code0 +"/fullcredits?ref_=tt_cl_sm#cast"
+	searchTerm = title1.replace(' ','+').split('(')[0] + title1.replace(' ','+').split('(')[1]
+	url1 = "http://www.imdb.com/find?ref_=nv_sr_fn&q=" + searchTerm + "&s=all"
+	response = requests.get(url1, headers = {'Accept-Encoding' : 'identity'})
+	source = response.text
+	code1 = patternCode.findall(source)[0].split("/")[0]
+	url1 = "http://www.imdb.com/title/" + code1 + "/?ref_=nv_sr_1"
+	response = requests.get(url1, headers = {'Accept-Encoding' : 'identity'})
+	source = response.text
+	url1 = "http://www.imdb.com/title/" + code1 +"/fullcredits?ref_=tt_cl_sm#cast"
+	#get actors and characters
+	patternActor = re.compile('<tr class="(?:odd|even)?">\s*<td class="primary_photo">\s<a href="\/name\/.*\/\?ref.=.*"\s><img height="44" width="32" alt="(.*?)" title')
+	patternCharacter = re.compile('<td class=\"character\">\s*(?:&nbsp;)?(?:<a href=\".*\" >)?(.*)(?:<\/a>)?')
+	response = requests.get(url0, headers = {'Accept-Encoding' : 'identity'})
+	source = response.text
+	matchesActors0 = patternActor.findall(source)
+	matchesCharacters0 = patternCharacter.findall(source)
+	response = requests.get(url1, headers = {'Accept-Encoding' : 'identity'})
+	source = response.text
+	matchesActors1 = patternActor.findall(source)
+	matchesCharacters1 = patternCharacter.findall(source)
+	#find actors that played in both and the characters they played
+	cast = []
+	for i in range(0, len(matchesActors0)):
+		for j in range(0, len(matchesActors1)):
+			if matchesActors0[i] == matchesActors1[j]:
+				print(i)
+				matchesCharacters0[i] = matchesCharacters0[i].replace('</a>', '')
+				matchesCharacters1[j] = matchesCharacters1[j].replace('</a>', '')
+				cast.append({'actor' : matchesActors0[i], 'character0' : matchesCharacters0[i], 'character1' : matchesCharacters1[j]})
+	taskId = getRecommendedList.delay(title0, title1).task_id
+	arguments = {'taskId' : taskId, 'title0' : title0.split('(')[0], 'title1' : title1.split('(')[0], 'cast' : cast}
+	return render(request, 'webscraping.html', context=arguments)
 	
 @task(name="getRecommendedList")
 def getRecommendedList(title0='', title1=''):
