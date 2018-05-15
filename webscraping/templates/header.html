@@ -1,9 +1,11 @@
+{% load static %}
+
 <!DOCTYPE html>
 <html>
 	<head>
-		<style>
-			{% block style %}{% endblock %}
-		</style>
+			<link href="https://fonts.googleapis.com/css?family=Loved+by+the+King" rel="stylesheet"> 
+			<link href="https://fonts.googleapis.com/css?family=Catamaran:600" rel="stylesheet"> 
+			<link rel="stylesheet" type="text/css" href="{% static 'style.css' %}" />
 		<title>{% block title %}{% endblock %}</title>
 		<meta charset="UTF-8" />
 	</head>

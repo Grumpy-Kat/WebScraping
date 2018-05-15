@@ -1,0 +1,54 @@
+body, input {
+	font-family: 'Loved by the King', sans-serif;
+	color: #2b2338;
+	background-color: #E1DCC8;
+}
+ul, p {
+	display: inline;
+}
+.options {
+  list-style-type: none;
+}
+h1, legend, button {
+	font-family: 'Catamaran', sans-serif;
+	color: #0FBFC1;
+}
+fieldset {
+	border-color: #110E16;
+	background-color: #CEC9B5;
+}
+legend {
+	font-size: 25px;
+	background-color: #110E16;
+	width: 300px;
+	text-align: center;
+	border-radius: 15px;
+	padding: 3px;
+}
+input[type="text"], button {
+	font-size: 23px;
+	font-weight: bold;
+	border-radius: 15px;
+	padding: 3px;
+	display: block;
+	width: 200px;
+	border-color: #110E16;
+}
+input[type="text"] {
+	width: 500px;
+}
+input {
+	background-color: #E1DCC8;
+}
+button {
+	background-color: #0FBFC1;
+	color: #110E16;
+}
+li, p {
+	font-size: 27px;
+	line-height: 95%;
+}
+p {
+	text-decoration: underline;
+	font-size: 29px;
+}

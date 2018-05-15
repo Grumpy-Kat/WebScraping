@@ -5,5 +5,5 @@ Allows you to enter two movies or TV shows and returns all actors that played in
 
 List of Future Additions:
 -Optimize!!! (two options: work through JavaScript and Node.js OR switch to Flask and use Celery to load all non-vital tasks)
--Add CSS
+-Add images to characters and recommendations
 -MAYBE make into Kivy app, instead of Django

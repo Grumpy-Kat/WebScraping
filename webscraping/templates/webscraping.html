@@ -20,7 +20,7 @@
 							for(var i=0; i < recommendations.length; i++){
 								var elem = document.createElement('li');
 								elem.setAttribute('id', 'li0' + recommendations[i] + i);
-								elem.innerHTML = recommendations[i];
+								elem.innerHTML = " - " + recommendations[i];
 								document.getElementById('recommendations').appendChild(elem);
 							}
 							document.getElementById("loading").style.display = 'none';
@@ -35,14 +35,16 @@
 		}
 	</script>
 	<h1>Actors and Actresses that Played in Both {{title0}} and {{title1}}</h1>
+	<p>Actors and Actresses:</p>
 	<ul>	
 		{% for item in cast %}
-			<li><b>{{item.actor}}</b> who played <i>{{item.character0}}</i> in {{title0}} and <i>{{item.character1}}</i> in {{title1}}</li>
+			<li> - <b>{{item.actor}}</b> who played <i>{{item.character0}}</i> in {{title0}} and <i>{{item.character1}}</i> in {{title1}}</li>
 		{% empty %}
 			<p>No actors or actresses played in both {{title0}} and {{title1}}.</p>
 		{% endfor %}
 	</ul>
 	<hr />
+	<p>Recommended:</p>
 	<p id="loading">Loading...</p>
 	<ul id="recommendations"></ul>
 {% endblock %}
